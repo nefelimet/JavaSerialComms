@@ -24,7 +24,7 @@ public class userApp {
 		return modem;
 	}
 
-	public void listen(Modem modem, String delimiter){
+	public String listen(Modem modem, String delimiter){
 		int k;
 		String rxmessage ="";
 		System.out.println("Sent request for message.");
@@ -51,9 +51,10 @@ public class userApp {
 				break;
 			}
 		}
+		return rxmessage;
 	}
 
-	public void sendAndListen(Modem modem, String txmessage, String delimiter){
+	public String sendAndListen(Modem modem, String txmessage, String delimiter){
 		int k;
 		String rxmessage = "";
 		//We create a different variable for the message we will send to Ithaki. The reason for differentiating is because for some reason the terminal couldn't print the
@@ -62,22 +63,13 @@ public class userApp {
 		modem.write(txmessageToSend.getBytes());
 		String toPrint = "Sent " + txmessage + " request code.";
 		System.out.println(toPrint);
-		listen(modem, delimiter);
+		rxmessage = listen(modem, delimiter);
+		return rxmessage;
 	}
 
-	public void demo() {
-		//Initialize modem
-		Modem modem = initModem(1000, 2000);
-
-		//Listen for welcome message
-		listen(modem, "\r\n\n\n");
-
-		//Send a test message and listen for answer
-		sendAndListen(modem, "test", "PSTOP\r\n");
-
-		//Create text file to store echo messages
+	public void createFile(String fileName){
 		try {
-			File myObj = new File("echopackets.txt");
+			File myObj = new File(fileName);
       if (myObj.createNewFile()) {
       	System.out.println("File created: " + myObj.getName());
       } else {
@@ -87,22 +79,46 @@ public class userApp {
       System.out.println("An error occurred.");
       e.printStackTrace();
     }
-		//Send echoRequestCodes and listen for answers
-		for(int i =0; i<2; i++){
-			sendAndListen(modem, echoRequestCode, "PSTOP");
-			try {
-      	FileWriter myWriter = new FileWriter("echopackets.txt");
-      	myWriter.write("Written "+i+"th line.\r");
-      	myWriter.close();
-      	System.out.println("Successfully wrote to the file.");
-    	} catch (IOException e) {
-      	System.out.println("An error occurred.");
-      	e.printStackTrace();
-    	}
+	}
+
+	public void writeToFile(String fileName, String toWrite){
+		try {
+			FileWriter myWriter = new FileWriter(fileName, true);											//The true argument is needed in order to append to the file and not overwrite it.
+			myWriter.write(toWrite);
+			myWriter.close();
+			System.out.println("Successfully wrote to the file.");
+		} catch (IOException e) {
+			System.out.println("An error occurred.");
+			e.printStackTrace();
+		}
+	}
+
+	public void demo() {
+		//Initialize modem
+		Modem modem = initModem(1000, 2000);
+
+		//Listen for welcome message
+		String welcomeMessage = listen(modem, "\r\n\n\n");
+
+		//Send a test message and listen for answer
+		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n");
+
+		//Create text file to store echo messages
+		createFile("echopackets.txt");
+		writeToFile("echopackets.txt", "Echo packets received: \n\n");
+
+		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file.
+		for(int i =0; i<5; i++){
+			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP");
+			writeToFile("echopackets.txt", rxmessage+"\r\n");
 		}
 
-		// NOTE : Stop program execution when "NO CARRIER" is detected.
-		// NOTE : A time-out option will enhance program behavior.
+		//Close modem
 		modem.close();
 	}
 }
+
+
+//NOTES
+// NOTE : Stop program execution when "NO CARRIER" is detected.
+// NOTE : A time-out option will enhance program behavior.
