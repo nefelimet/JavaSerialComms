@@ -111,18 +111,22 @@ public class userApp {
 		//writeToFile("imagepacket.txt", "Image packet received: \n\n");
 		writeToFile("gpspackets.txt", "GPS packets received: \n\n");
 
+		long time1 = System.currentTimeMillis();
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file
-		for(int i=0; i<2; i++){
-			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", true);
+		for(int i=0; i<10; i++){
+			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);
 			writeToFile("echopackets.txt", rxmessage+"\r\n");
 		}
+		long timePassed = System.currentTimeMillis() - time1;
+		System.out.println("It took "+timePassed + " ms to receive the echo packets.");
+		writeToFile("echopackets.txt", "It took "+timePassed + " ms to receive the echo packets.\r\n");
 
 		//Send imageRequestCode and listen for answer. Write it to imagepacket.txt file
 		// String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
 		// writeToFile("imagepacket.txt", rxmessage+"\r\n");
 
 		//Send gpsRequestCode and listen for answer. Write it to gpspacket.txt file
-		String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", true);
+		String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", false);
 		writeToFile("gpspackets.txt", gpsMessage+"\r\n");
 
 
