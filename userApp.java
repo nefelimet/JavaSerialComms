@@ -7,8 +7,8 @@ public class userApp {
 	public static String echoRequestCode =  "E0223";
 	public static String imageRequestCode = "M8880";
 	public static String imageRequestCodeError = "G6145";
-	public static String gpsRequestCode = " P7268";
-	public static String ackCode = " Q9717";
+	public static String gpsRequestCode = "P7268";
+	public static String ackCode = "Q9717";
 	public static String nackCode = "R6418";
 
 	public static void main(String[] param) {
@@ -103,7 +103,7 @@ public class userApp {
 		//Send a test message and listen for answer
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
 
-		//Create text file to store echo messages
+		//Create text files to store packets we receive
 		createFile("echopackets.txt");
 		//createFile("imagepacket.txt");
 		createFile("gpspackets.txt");
@@ -111,17 +111,17 @@ public class userApp {
 		//writeToFile("imagepacket.txt", "Image packet received: \n\n");
 		writeToFile("gpspackets.txt", "GPS packets received: \n\n");
 
-		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file.
-		for(int i =0; i<2; i++){
+		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file
+		for(int i=0; i<2; i++){
 			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", true);
 			writeToFile("echopackets.txt", rxmessage+"\r\n");
 		}
 
-		//Send imageRequestCode and listen for answer. Write the rxmessage into txt file.
+		//Send imageRequestCode and listen for answer. Write it to imagepacket.txt file
 		// String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
 		// writeToFile("imagepacket.txt", rxmessage+"\r\n");
 
-		//Send gpsRequestCode and listen for answer. Write the rxmessage to gpspacket.txt file.
+		//Send gpsRequestCode and listen for answer. Write it to gpspacket.txt file
 		String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", true);
 		writeToFile("gpspackets.txt", gpsMessage+"\r\n");
 
