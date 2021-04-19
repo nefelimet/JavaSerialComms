@@ -1,20 +1,22 @@
-import java.io.File;  // Import the File class
-import java.io.FileWriter;   // Import the FileWriter class
-import java.io.IOException;  // Import the IOException class to handle errors
+import java.io.File;  																													//Library for handling files
+import java.io.FileWriter;																											//Library for writing to files
+import java.io.IOException;																											//Library for handling exceptions
 
 public class userApp {
 
-	public static String echoRequestCode =  "E0223";
-	public static String imageRequestCode = "M8880";
-	public static String imageRequestCodeError = "G6145";
-	public static String gpsRequestCode = "P7268";
-	public static String ackCode = "Q9717";
-	public static String nackCode = "R6418";
+	//Request codes that change in each 2-hour session
+	public static String echoRequestCode =  "E2112";
+	public static String imageRequestCode = "M1225";
+	public static String imageRequestCodeError = "G9995";
+	public static String gpsRequestCode = "P6893";
+	public static String ackCode = "Q2001";
+	public static String nackCode = "R4865";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
 	}
 
+	//Initializes the modem
 	public Modem initModem(int speed, int timeout){
 		Modem modem;
 		modem=new Modem();
@@ -24,6 +26,7 @@ public class userApp {
 		return modem;
 	}
 
+	//Receives what Ithaki sends without sending a request code. Prints the packet on the terminal if printRx is true.
 	public String listen(Modem modem, String delimiter, boolean printRx){
 		int k;
 		String rxmessage ="";
@@ -54,6 +57,7 @@ public class userApp {
 		return rxmessage;
 	}
 
+	//Sends a request code and receives the answer. Prints the packet on the terminal if printRx is true.
 	public String sendAndListen(Modem modem, String txmessage, String delimiter, boolean printRx){
 		int k;
 		String rxmessage = "";
@@ -67,6 +71,7 @@ public class userApp {
 		return rxmessage;
 	}
 
+	//Creates a file.
 	public void createFile(String fileName){
 		try {
 			File myObj = new File(fileName);
@@ -81,6 +86,7 @@ public class userApp {
     }
 	}
 
+	//Writes a string to a file.
 	public void writeToFile(String fileName, String toWrite){
 		try {
 			FileWriter myWriter = new FileWriter(fileName, true);											//The true argument is needed in order to append to the file and not overwrite it.
@@ -93,41 +99,47 @@ public class userApp {
 		}
 	}
 
+	//Receives a lot of echo packets and calculates each packet's response time in ms. Writes the results in a txt file.
+	public void makeEchoPacketsList(Modem modem, int packetsNum){
+		long time1;
+		long timePassed;
+		createFile("echopackets.txt");
+		writeToFile("echopackets.txt", "Echo packets received: \n\n");
+		for(int i=0; i<packetsNum; i++){
+			time1 = System.currentTimeMillis();
+			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);
+			timePassed = System.currentTimeMillis() - time1;
+			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
+		}
+	}
+
 	public void demo() {
-		//Initialize modem
+		//Initialize modem.
 		Modem modem = initModem(1000, 2000);
 
-		//Listen for welcome message
+		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
 
-		//Send a test message and listen for answer
+		//Send a test message and listen for answer.
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
 
-		//Create text files to store packets we receive
-		createFile("echopackets.txt");
-		//createFile("imagepacket.txt");
-		createFile("gpspackets.txt");
-		writeToFile("echopackets.txt", "Echo packets received: \n\n");
-		//writeToFile("imagepacket.txt", "Image packet received: \n\n");
-		writeToFile("gpspackets.txt", "GPS packets received: \n\n");
+		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
+		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
+		makeEchoPacketsList(modem, 5);
 
-		long time1 = System.currentTimeMillis();
-		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file
-		for(int i=0; i<10; i++){
-			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);
-			writeToFile("echopackets.txt", rxmessage+"\r\n");
-		}
-		long timePassed = System.currentTimeMillis() - time1;
-		System.out.println("It took "+timePassed + " ms to receive the echo packets.");
-		writeToFile("echopackets.txt", "It took "+timePassed + " ms to receive the echo packets.\r\n");
+		//Create text files to store packets we receive
+		//createFile("imagepacket.txt");
+		//createFile("gpspackets.txt");
+		//writeToFile("imagepacket.txt", "Image packet received: \n\n");
+		//writeToFile("gpspackets.txt", "GPS packets received: \n\n");
 
 		//Send imageRequestCode and listen for answer. Write it to imagepacket.txt file
 		// String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
 		// writeToFile("imagepacket.txt", rxmessage+"\r\n");
 
 		//Send gpsRequestCode and listen for answer. Write it to gpspacket.txt file
-		String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", false);
-		writeToFile("gpspackets.txt", gpsMessage+"\r\n");
+		//String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", false);
+		//writeToFile("gpspackets.txt", gpsMessage+"\r\n");
 
 
 		//Close modem
