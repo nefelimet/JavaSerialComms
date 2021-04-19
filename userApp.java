@@ -1,16 +1,17 @@
 import java.io.File;  																													//Library for handling files
 import java.io.FileWriter;																											//Library for writing to files
 import java.io.IOException;																											//Library for handling exceptions
+import java.io.FileOutputStream;																								//Library for handling file output streams, in order to create images
 
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E2112";
-	public static String imageRequestCode = "M1225";
-	public static String imageRequestCodeError = "G9995";
-	public static String gpsRequestCode = "P6893";
-	public static String ackCode = "Q2001";
-	public static String nackCode = "R4865";
+	public static String echoRequestCode =  "E5390";
+	public static String imageRequestCode = "M1484";
+	public static String imageRequestCodeError = "G1830";
+	public static String gpsRequestCode = "P4969";
+	public static String ackCode = "Q3737";
+	public static String nackCode = "R1448";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -92,7 +93,7 @@ public class userApp {
 			FileWriter myWriter = new FileWriter(fileName, true);											//The true argument is needed in order to append to the file and not overwrite it.
 			myWriter.write(toWrite);
 			myWriter.close();
-			System.out.println("Successfully wrote to the file.");
+		//	System.out.println("Successfully wrote to the file.");
 		} catch (IOException e) {
 			System.out.println("An error occurred.");
 			e.printStackTrace();
@@ -107,7 +108,7 @@ public class userApp {
 		writeToFile("echopackets.txt", "Echo packets received: \n\n");
 		for(int i=0; i<packetsNum; i++){
 			time1 = System.currentTimeMillis();
-			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);
+			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);	//Echo packets don't have an \r character after PSTOP for some reason.
 			timePassed = System.currentTimeMillis() - time1;
 			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
 		}
@@ -115,7 +116,7 @@ public class userApp {
 
 	public void demo() {
 		//Initialize modem.
-		Modem modem = initModem(1000, 2000);
+		Modem modem = initModem(80000, 2000);																				//For text, speed=1000. For images, speed=80000.
 
 		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
@@ -125,22 +126,72 @@ public class userApp {
 
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
 		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
-		makeEchoPacketsList(modem, 5);
+		//makeEchoPacketsList(modem, 2);
+
+		//Receive an image
+		createFile("imagepacket.txt");
+		writeToFile("imagepacket.txt", "Image packet received: \n\n");
+		try {
+			File imgFile = new File("imgFile.jpeg");
+      if (imgFile.createNewFile()) {
+      	System.out.println("File created: " + imgFile.getName());
+      } else {
+        System.out.println("File already exists.");
+      }
+    } catch (IOException e) {
+      System.out.println("An error occurred.");
+      e.printStackTrace();
+    }
+
+		// int k;
+		// String rxmessage = "";
+		// String txmessageToSend = imageRequestCode+"/r";
+		// modem.write(txmessageToSend.getBytes());
+		// System.out.println("Sent request for message.");
+		//
+		// //Endless loop for listening for message
+		// for (;;) {
+		// 	try {
+		// 		k=modem.read();																													//Read a byte from the modem
+		// 		if (k==-1){
+		// 			System.out.println("Connection closed.");
+		// 			break;
+		// 		}
+		// 		System.out.print((char)k+" <"+k+"> ");
+		// 		writeToFile("imagepacket.txt", k+"  ");
+		//
+		// 		//Break endless loop by catching break sequence.
+		// 		if (rxmessage.indexOf("PSTOP")>-1){																		//If the break sequence is found break
+		// 			System.out.println("End of listen message.");
+		// 			break;
+		// 		}
+		// 	} catch (Exception x) {
+		// 		break;
+		// 	}
+		// }
+
+		String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
+		try{
+			FileOutputStream fos = new FileOutputStream("imgFile.jpeg");
+			byte byteArr[] = rxmessage.getBytes();																		//Convert string to byte array
+			fos.write(byteArr);
+			fos.close();
+		} catch(Exception e){
+			System.out.println(e);
+		}
+		for(int i=0;i<rxmessage.length();i++){
+			writeToFile("imagepacket.txt", (byte)rxmessage.charAt(i)+"\r\n");
+		}
+
+
+
 
 		//Create text files to store packets we receive
-		//createFile("imagepacket.txt");
 		//createFile("gpspackets.txt");
-		//writeToFile("imagepacket.txt", "Image packet received: \n\n");
 		//writeToFile("gpspackets.txt", "GPS packets received: \n\n");
-
-		//Send imageRequestCode and listen for answer. Write it to imagepacket.txt file
-		// String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
-		// writeToFile("imagepacket.txt", rxmessage+"\r\n");
-
 		//Send gpsRequestCode and listen for answer. Write it to gpspacket.txt file
 		//String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", false);
 		//writeToFile("gpspackets.txt", gpsMessage+"\r\n");
-
 
 		//Close modem
 		modem.close();
