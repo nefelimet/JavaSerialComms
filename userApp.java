@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E4652";
-	public static String imageRequestCode = "M6364";
-	public static String imageRequestCodeError = "G2786";
-	public static String gpsRequestCode = "P8706";
-	public static String ackCode = "Q5799";
-	public static String nackCode = "R7810";
+	public static String echoRequestCode =  "E4919";
+	public static String imageRequestCode = "M1374";
+	public static String imageRequestCodeError = "G6105";
+	public static String gpsRequestCode = "P1227";
+	public static String ackCode = "Q0951";
+	public static String nackCode = "R4063";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -298,24 +298,58 @@ public class userApp {
 
 	//Takes arqPacket string and finds the XOR result of its characters.
 	public int xorResult(String arqPacket){
-		int len = arqPacket.length();
-		
+		String xSeq = "";
+		int startIndex = 0;
+
+		//Find the beginning of the X sequence.
+		for (int i=0; i<arqPacket.length(); i++){
+			if(arqPacket.charAt(i) == '<'){
+				startIndex = i+1;
+				break;
+			}
+		}
+
+		//Save the X sequence into xSeq string.
+		int j = startIndex;
+		while(arqPacket.charAt(j) != '>'){
+			xSeq += arqPacket.charAt(j);
+			j++;
+		}
+
+		//Make each character in xSeq a number (ASCII).
+		ArrayList<Integer> xArr = new ArrayList<Integer>();
+		for (int i=0; i<xSeq.length(); i++){
+			xArr.add((int)(xSeq.charAt(i)));
+		}
+
+		//XOR all the X characters and save result into p.
+		int p = xArr.get(0) ^ xArr.get(1);
+		for(int i=2; i<xSeq.length(); i++){
+			p = p ^ xArr.get(i);
+		}
+		return p;
 	}
 
-	// public void arqMechanism(Modem modem, int packetsNum){
-	// 	//Send an ACK to begin.
-	// 	String rxmessage = sendAndListen(modem, ackCode, "PSTOP", true);
-	//
-	// 	//See if the packet was correct.
-	// 	while(fcs(rxmessage) != xorResult(rxmessage)){
-	// 		//As long as (while) the packet is incorrect, send nack in order to get it again.
-	// 		rxmessage = sendAndListen(modem, nackCode, "PSTOP", true);
-	// 		packetsReceived++;
-	// 		if(packetsReceived>packetsNum){
-	// 			return;
-	// 		}
-	// 	}
-	// }
+	public void arqMechanism(Modem modem, int packetsNum){
+		//Send an ACK to begin.
+		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", true);
+		int packetsReceived = 1;
+
+		for(int i=0; i<packetsNum; i++){
+
+			System.out.println(fcs(rxmessage) == xorResult(rxmessage));
+		}
+
+		//See if the packet was correct.
+		// while(fcs(rxmessage) != xorResult(rxmessage)){
+		// 	//As long as (while) the packet is incorrect, send nack in order to get it again.
+		// 	rxmessage = sendAndListen(modem, nackCode, "PSTOP", true);
+		// 	packetsReceived++;
+		// 	if(packetsReceived>packetsNum){
+		// 		return;
+		// 	}
+		// }
+	}
 
 	public void demo() {
 		//Initialize modem.
@@ -345,10 +379,7 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		String ack = sendAndListen(modem, ackCode, "PSTOP", true);
-		String nack = sendAndListen(modem, nackCode, "PSTOP", true);
-		System.out.println("ACKs fcs: "+fcs(ack));
-		System.out.println("NACKs fcs: "+fcs(nack));
+		arqMechanism(modem, 5);
 
 		//Close modem
 		modem.close();
