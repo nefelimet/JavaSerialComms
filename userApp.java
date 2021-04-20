@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E8471";
-	public static String imageRequestCode = "M9819";
-	public static String imageRequestCodeError = "G2841";
-	public static String gpsRequestCode = "P2914";
-	public static String ackCode = "Q6408";
-	public static String nackCode = "R5076";
+	public static String echoRequestCode =  "E4652";
+	public static String imageRequestCode = "M6364";
+	public static String imageRequestCodeError = "G2786";
+	public static String gpsRequestCode = "P8706";
+	public static String ackCode = "Q5799";
+	public static String nackCode = "R7810";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -202,6 +202,7 @@ public class userApp {
 		}
 	}
 
+	//Receives an image with a GPS trace (or more), according to the gpsRequestCode we pass. Stores it into a jpeg file as well as a txt file.
 	public void receiveGPSimage(Modem modem, String requestCode){
 		ArrayList<Integer> intList = new ArrayList<Integer>();
 		ArrayList<Byte> byteList = new ArrayList<Byte>();
@@ -277,6 +278,45 @@ public class userApp {
 		}
 	}
 
+	//Takes arqPacket string as argument and finds its FCS by parsing the string.
+	public int fcs(String arqPacket){
+		String fcsString = "";
+		int startIndex = 0;
+		for (int i=0; i<arqPacket.length(); i++){
+			if(arqPacket.charAt(i) == '>'){
+				startIndex = i+2;
+				break;
+			}
+		}
+		for(int i=0; i<3; i++){
+			fcsString += arqPacket.charAt(startIndex + i);
+		}
+		int fcs;
+		fcs = Integer.parseInt(fcsString);
+		return fcs;
+	}
+
+	//Takes arqPacket string and finds the XOR result of its characters.
+	public int xorResult(String arqPacket){
+		int len = arqPacket.length();
+		
+	}
+
+	// public void arqMechanism(Modem modem, int packetsNum){
+	// 	//Send an ACK to begin.
+	// 	String rxmessage = sendAndListen(modem, ackCode, "PSTOP", true);
+	//
+	// 	//See if the packet was correct.
+	// 	while(fcs(rxmessage) != xorResult(rxmessage)){
+	// 		//As long as (while) the packet is incorrect, send nack in order to get it again.
+	// 		rxmessage = sendAndListen(modem, nackCode, "PSTOP", true);
+	// 		packetsReceived++;
+	// 		if(packetsReceived>packetsNum){
+	// 			return;
+	// 		}
+	// 	}
+	// }
+
 	public void demo() {
 		//Initialize modem.
 		Modem modem = initModem(80000, 2000);																				//For text, speed=1000. For images, speed=80000.
@@ -296,16 +336,19 @@ public class userApp {
 		//receiveImage(modem, imageRequestCodeError);
 
 		//Receive GPS track packets.
-		String tCode1 = "T=403096225969";
-		String tCode2 = "T=403196225969";
-		String tCode3 = "T=403296225969";
-		String tCode4 = "T=403396225969";
-
-		String rCode = "R=12341";
-		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
+		// String tCode1 = "T=403096225969";
+		// String tCode2 = "T=403196225969";
+		// String tCode3 = "T=403296225969";
+		// String tCode4 = "T=403396225969";
+		//
+		// String rCode = "R=12341";
+		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-
+		String ack = sendAndListen(modem, ackCode, "PSTOP", true);
+		String nack = sendAndListen(modem, nackCode, "PSTOP", true);
+		System.out.println("ACKs fcs: "+fcs(ack));
+		System.out.println("NACKs fcs: "+fcs(nack));
 
 		//Close modem
 		modem.close();
