@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E1018";
-	public static String imageRequestCode = "M5879";
-	public static String imageRequestCodeError = "G3088";
-	public static String gpsRequestCode = "P4530";
-	public static String ackCode = "Q9289";
-	public static String nackCode = "R6344";
+	public static String echoRequestCode =  "E1549";
+	public static String imageRequestCode = "M3011";
+	public static String imageRequestCodeError = "G5282";
+	public static String gpsRequestCode = "P0065";
+	public static String ackCode = "Q6394";
+	public static String nackCode = "R9361";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -121,9 +121,19 @@ public class userApp {
 		ArrayList<Integer> intList = new ArrayList<Integer>();
 		ArrayList<Byte> byteList = new ArrayList<Byte>();
 		int k;
-		String rxmessage="";
 		boolean foundEndDelimiter = false;
 		int lastValue = 0;
+
+		String jpegFileName = "";
+		String txtFileName = "";
+		if(requestCode==imageRequestCode){
+			jpegFileName = "imageNoError.jpeg";
+			txtFileName = "imageNoError.txt";
+		}
+		if(requestCode==imageRequestCodeError){
+			jpegFileName = "imageWithError.jpeg";
+			txtFileName = "imageWithError.txt";
+		}
 
 		String txmessageToSend = requestCode + "\r";
 		modem.write(txmessageToSend.getBytes());
@@ -138,7 +148,6 @@ public class userApp {
 					System.out.println("Connection closed.");
 					break;
 				}
-				rxmessage = rxmessage + (char)k;
 				intList.add(k);
 				byteList.add((byte)k);
 				if(lastValue==255 && k==217){foundEndDelimiter=true;}
@@ -154,17 +163,18 @@ public class userApp {
 			}
 		}
 
-		//Now intArr stores the image in an int array form. We will now write that int array into a txt file.
-		createFile("imagepacket.txt");
-		writeToFile("imagepacket.txt", "Int array of image:/n/n");
+		//Now intList stores the image in an ArrayList<Integer> form. We will now write that into a txt file for checking (optional).
+		createFile(txtFileName);
+		writeToFile(txtFileName, "Int array of image:/n/n");
 		for(int i=0; i<intList.size();i++){
-			writeToFile("imagepacket.txt", intList.get(i)+"/r/n");
+			writeToFile(txtFileName, intList.get(i)+"/r/n");
 		}
 
-		//We will write the int array into a jpg file using FileOutputStream.
+		//We will write the int array into a jpeg file using FileOutputStream.
+
 		//Create the jpeg file.
 		try {
-			File imgFile = new File("imgFile.jpeg");
+			File imgFile = new File(jpegFileName);
 		  if (imgFile.createNewFile()) {
 		  	System.out.println("File created: " + imgFile.getName());
 		  } else {
@@ -175,16 +185,15 @@ public class userApp {
 		  e.printStackTrace();
 		}
 
-		//Convert intArr to byteArr
-		//int intArr[] = intList.toArray();
+		//Convert byteList to byteArr
 		byte byteArr[] = new byte[byteList.size()];
 		for(int i=0; i<byteList.size();i++){
 			byteArr[i] = byteList.get(i);
 		}
 
-		//Use FileOutputStream to copy byteArr into jpg file.
+		//Use FileOutputStream to copy byteArr into jpeg file.
 		try{
-			FileOutputStream fos = new FileOutputStream("imgFile.jpeg");
+			FileOutputStream fos = new FileOutputStream(jpegFileName);
 			fos.write(byteArr);
 			fos.close();
 		} catch(Exception e){
@@ -204,68 +213,11 @@ public class userApp {
 
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
 		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
-		//makeEchoPacketsList(modem, 2);
+		makeEchoPacketsList(modem, 2);
 
+		//Receive an image with no error and one with error.
 		receiveImage(modem, imageRequestCode);
-
-		//Receive an image
-		// createFile("imagepacket.txt");
-		// writeToFile("imagepacket.txt", "Image packet received: \n\n");
-		// try {
-		// 	File imgFile = new File("imgFile.jpeg");
-    //   if (imgFile.createNewFile()) {
-    //   	System.out.println("File created: " + imgFile.getName());
-    //   } else {
-    //     System.out.println("File already exists.");
-    //   }
-    // } catch (IOException e) {
-    //   System.out.println("An error occurred.");
-    //   e.printStackTrace();
-    // }
-		//
-		// int k;
-		// String rxmessage = "";
-		// String txmessageToSend = imageRequestCode+"/r";
-		// modem.write(txmessageToSend.getBytes());
-		// System.out.println("Sent request for message.");
-		//
-		// //Endless loop for listening for message
-		// for (;;) {
-		// 	try {
-		// 		k=modem.read();																													//Read a byte from the modem
-		// 		if (k==-1){
-		// 			System.out.println("Connection closed.");
-		// 			break;
-		// 		}
-		// 		System.out.println(k);
-		// 		writeToFile("imagepacket.txt", k+"\r\n");
-		//
-		// 		//Break endless loop by catching break sequence.
-		// 		if (rxmessage.indexOf("PSTOP")>-1){																		//If the break sequence is found break
-		// 			System.out.println("End of listen message.");
-		// 			break;
-		// 		}
-		// 	} catch (Exception x) {
-		// 		break;
-		// 	}
-		// }
-
-
-		//This piece of code wrote a binary file to txt that starts with -1 -40 and ends with -1 -39, but the image won't show.
-		// String rxmessage = sendAndListen(modem, imageRequestCode, "PSTOP", false);
-		// try{
-		// 	FileOutputStream fos = new FileOutputStream("imgFile.jpeg");
-		// 	byte byteArr[] = rxmessage.getBytes();																		//Convert string to byte array
-		// 	fos.write(byteArr);
-		// 	fos.close();
-		// } catch(Exception e){
-		// 	System.out.println(e);
-		// }
-		// for(int i=0;i<rxmessage.length();i++){
-		// 	writeToFile("imagepacket.txt", (byte)rxmessage.charAt(i)+"\r\n");
-		// }
-		//end
-
+		receiveImage(modem, imageRequestCodeError);
 
 
 
