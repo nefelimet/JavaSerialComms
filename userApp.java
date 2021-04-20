@@ -330,25 +330,30 @@ public class userApp {
 		return p;
 	}
 
-	public void arqMechanism(Modem modem, int packetsNum){
+	//Implements an ARQ mechanism, for duration milliseconds (taken as an argument).
+	public void arqMechanism(Modem modem, long duration){
+		int ackNum = 1;
+		int nackNum = 0;
+		createFile("arqpackets.txt");
+		writeToFile("arqpackets.txt", "ARQ packets received: \n\n");
+		long startTime = System.currentTimeMillis();
 		//Send an ACK to begin.
-		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", true);
-		int packetsReceived = 1;
+		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", false);
+		long timePassed = System.currentTimeMillis() - startTime;
+		String nextCode = ackCode;
 
-		for(int i=0; i<packetsNum; i++){
+		//Keep sending and receiving as long as time passed < duration.
+		do{
+			if(fcs(rxmessage) == xorResult(rxmessage)){
+				nextCode = ackCode;
+			}
+			else{
+				nextCode = nackCode;
+			}
+			rxmessage = sendAndListen(modem, nextCode, "PSTOP", false);
+			timePassed = System.currentTimeMillis() - startTime;
+		}while(timePassed <= duration);
 
-			System.out.println(fcs(rxmessage) == xorResult(rxmessage));
-		}
-
-		//See if the packet was correct.
-		// while(fcs(rxmessage) != xorResult(rxmessage)){
-		// 	//As long as (while) the packet is incorrect, send nack in order to get it again.
-		// 	rxmessage = sendAndListen(modem, nackCode, "PSTOP", true);
-		// 	packetsReceived++;
-		// 	if(packetsReceived>packetsNum){
-		// 		return;
-		// 	}
-		// }
 	}
 
 	public void demo() {
@@ -379,19 +384,9 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		arqMechanism(modem, 5);
+		arqMechanism(modem, 10000);
 
 		//Close modem
 		modem.close();
 	}
 }
-
-//TO-DO
-//1. makeEchoPacketsList: write results in excel file, not txt
-//2. write .m script to make G1 graph out of makeEchoPacketsList
-//3.
-
-
-//NOTES
-// NOTE : Stop program execution when "NO CARRIER" is detected.
-// NOTE : A time-out option will enhance program behavior.
