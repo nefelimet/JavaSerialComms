@@ -340,20 +340,25 @@ public class userApp {
 		//Send an ACK to begin.
 		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", false);
 		long timePassed = System.currentTimeMillis() - startTime;
+		writeToFile("arqpackets.txt", rxmessage+"\n");
 		String nextCode = ackCode;
 
 		//Keep sending and receiving as long as time passed < duration.
 		do{
 			if(fcs(rxmessage) == xorResult(rxmessage)){
 				nextCode = ackCode;
+				ackNum++;
 			}
 			else{
 				nextCode = nackCode;
+				nackNum++;
 			}
 			rxmessage = sendAndListen(modem, nextCode, "PSTOP", false);
 			timePassed = System.currentTimeMillis() - startTime;
+			writeToFile("arqpackets.txt", rxmessage+"\n");
 		}while(timePassed <= duration);
-
+		writeToFile("arqpackets.txt", "Number of ACK packets: "+ackNum+"\n");
+		writeToFile("arqpackets.txt", "Number of NACK packets: "+nackNum+"\n");
 	}
 
 	public void demo() {
