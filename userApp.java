@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E1549";
-	public static String imageRequestCode = "M3011";
-	public static String imageRequestCodeError = "G5282";
-	public static String gpsRequestCode = "P0065";
-	public static String ackCode = "Q6394";
-	public static String nackCode = "R9361";
+	public static String echoRequestCode =  "E8471";
+	public static String imageRequestCode = "M9819";
+	public static String imageRequestCodeError = "G2841";
+	public static String gpsRequestCode = "P2914";
+	public static String ackCode = "Q6408";
+	public static String nackCode = "R5076";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -116,6 +116,7 @@ public class userApp {
 		}
 	}
 
+	//Receives an image and stores it into a jpeg file. Also stores its info in a txt file for checking purposes.
 	public void receiveImage(Modem modem, String requestCode){
 		//We take the requestCode as an argument because it could either be an error free imageRequestCode or an imageRequestCodeError one.
 		ArrayList<Integer> intList = new ArrayList<Integer>();
@@ -201,6 +202,81 @@ public class userApp {
 		}
 	}
 
+	public void receiveGPSimage(Modem modem, String requestCode){
+		ArrayList<Integer> intList = new ArrayList<Integer>();
+		ArrayList<Byte> byteList = new ArrayList<Byte>();
+		int k;
+		boolean foundEndDelimiter = false;
+		int lastValue = 0;
+
+		String jpegFileName = "gpsImage.jpeg";
+		String txtFileName = "gpsImage.txt";
+		String txmessageToSend = requestCode + "\r";
+		modem.write(txmessageToSend.getBytes());
+		System.out.println("Sent request for image.");
+		String toPrint = "Sent " + requestCode + " request code.";
+		System.out.println(toPrint);
+
+		for(;;){
+			try{
+				k = modem.read();
+				if (k==-1){
+					System.out.println("Connection closed.");
+					break;
+				}
+				intList.add(k);
+				byteList.add((byte)k);
+				if(lastValue==255 && k==217){foundEndDelimiter=true;}
+				if(foundEndDelimiter){
+					System.out.println("End of listen message.");
+					break;
+				}
+				else{
+					lastValue = k;
+				}
+			} catch(Exception x){
+				break;
+			}
+		}
+
+		//Now intList stores the image in an ArrayList<Integer> form. We will now write that into a txt file for checking (optional).
+		createFile(txtFileName);
+		writeToFile(txtFileName, "Int array of image:/n/n");
+		for(int i=0; i<intList.size();i++){
+			writeToFile(txtFileName, intList.get(i)+"/r/n");
+		}
+
+		//We will write the int array into a jpeg file using FileOutputStream.
+
+		//Create the jpeg file.
+		try {
+			File imgFile = new File(jpegFileName);
+		  if (imgFile.createNewFile()) {
+		  	System.out.println("File created: " + imgFile.getName());
+		  } else {
+		    System.out.println("File already exists.");
+		  }
+		} catch (IOException e) {
+		  System.out.println("An error occurred.");
+		  e.printStackTrace();
+		}
+
+		//Convert byteList to byteArr
+		byte byteArr[] = new byte[byteList.size()];
+		for(int i=0; i<byteList.size();i++){
+			byteArr[i] = byteList.get(i);
+		}
+
+		//Use FileOutputStream to copy byteArr into jpeg file.
+		try{
+			FileOutputStream fos = new FileOutputStream(jpegFileName);
+			fos.write(byteArr);
+			fos.close();
+		} catch(Exception e){
+			System.out.println(e);
+		}
+	}
+
 	public void demo() {
 		//Initialize modem.
 		Modem modem = initModem(80000, 2000);																				//For text, speed=1000. For images, speed=80000.
@@ -213,20 +289,23 @@ public class userApp {
 
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
 		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
-		makeEchoPacketsList(modem, 2);
+		//makeEchoPacketsList(modem, 2);
 
 		//Receive an image with no error and one with error.
-		receiveImage(modem, imageRequestCode);
-		receiveImage(modem, imageRequestCodeError);
+		//receiveImage(modem, imageRequestCode);
+		//receiveImage(modem, imageRequestCodeError);
 
+		//Receive GPS track packets.
+		String tCode1 = "T=403096225969";
+		String tCode2 = "T=403196225969";
+		String tCode3 = "T=403296225969";
+		String tCode4 = "T=403396225969";
 
+		String rCode = "R=12341";
+		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
 
-		//Create text files to store packets we receive
-		//createFile("gpspackets.txt");
-		//writeToFile("gpspackets.txt", "GPS packets received: \n\n");
-		//Send gpsRequestCode and listen for answer. Write it to gpspacket.txt file
-		//String gpsMessage = sendAndListen(modem, gpsRequestCode, "STOP ITHAKI GPS TRACKING\r", false);
-		//writeToFile("gpspackets.txt", gpsMessage+"\r\n");
+		//ARQ mechanism.
+
 
 		//Close modem
 		modem.close();
