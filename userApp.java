@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E0344";
-	public static String imageRequestCode = "M1305";
-	public static String imageRequestCodeError = "G5273";
-	public static String gpsRequestCode = "P7783";
-	public static String ackCode = "Q2584";
-	public static String nackCode = "R7462";
+	public static String echoRequestCode =  "E2328";
+	public static String imageRequestCode = "M6897";
+	public static String imageRequestCodeError = "G6680";
+	public static String gpsRequestCode = "P1286";
+	public static String ackCode = "Q0373";
+	public static String nackCode = "R3371";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -297,6 +297,73 @@ public class userApp {
 		}
 	}
 
+	//Sends GPS + R=XPPPPLL request code and receives GPS traces in strings.
+	public void receiveGPStraces(Modem modem, String rCode){
+		createFile("gpstraces.txt");
+		writeToFile("gpstraces.txt", "GPS traces received: \n\n");
+		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
+		writeToFile("gpstraces.txt", rxmessage);
+	}
+
+	//Parses GPS packet (single line). Produces an int array containing time, latitude and longitude.
+	public int[] parseGPSpacket(String gpsPacket){
+		String strResult = "";
+		int result[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+		int index1 = 0;
+		int index2 = 0;
+		int index3 = 0;
+		int numOfCommasFound = 0;
+
+		int i = 0;
+		char c = gpsPacket.charAt(i);
+		while(c!= '\n'){
+			if(c == ','){
+				switch(numOfCommasFound){
+					case 0:
+						index1 = i+1;
+						break;
+					case 1:
+						index2 = i+1;
+						break;
+					case 2:
+						break;
+					case 3:
+						index3 = i+2;
+						break;
+				}
+				numOfCommasFound++;
+			}
+			i++;
+			c = gpsPacket.charAt(i);
+		}
+
+		//This is done very mpakalika
+		for(int j=0; j<6; j++){
+			if(gpsPacket.charAt(index1+j) != '.'){
+				strResult += gpsPacket.charAt(index1+j);
+			}
+		}
+		for(int j=0; j<7; j++){
+			if(gpsPacket.charAt(index2+j) != '.'){
+				strResult += gpsPacket.charAt(index2+j);
+			}
+		}
+		for(int j=0; j<7; j++){
+			if(gpsPacket.charAt(index3+j) != '.'){
+				strResult += gpsPacket.charAt(index3+j);
+			}
+		}
+		System.out.println(strResult);
+		String nextTwo = "";
+		for(int j=0;j<18;j+=2){
+			nextTwo += strResult.charAt(j);
+			nextTwo += strResult.charAt(j+1);
+			result[j/2]=Integer.valueOf(nextTwo);
+			nextTwo = "";
+		}
+		return result;
+	}
+
 	//Takes arqPacket string as argument and finds its FCS by parsing the string.
 	public int fcs(String arqPacket){
 		String fcsString = "";
@@ -416,7 +483,7 @@ public class userApp {
 
 	public void demo() {
 		//Initialize modem.
-		Modem modem = initModem(8000, 2000);																				//For text, speed=1000. For images, speed=80000.
+		Modem modem = initModem(10000, 2000);																				//For text, speed=1000. For images, speed=80000.
 
 		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
@@ -433,15 +500,20 @@ public class userApp {
 		//receiveImage(modem, imageRequestCodeError);
 
 		//Receive GPS track packets.
-		// String tCode1 = "T=403096225969";
-		// String tCode2 = "T=403196225969";
-		// String tCode3 = "T=403296225969";
-		// String tCode4 = "T=403396225969";
-		//
-		// String rCode = "R=12341";
-		// receiveGPSimage(modem, gpsRequestCode+rCode);
+		String tCode1 = "T=225758403761";
+		String tCode2 = "T=225753403764";
+		String mariosString = "T=225731403739T=225728403741T=225727403743T=225728403744T=225731403746";
 
-		//ARQ mechanism.
+		//receiveGPStraces(modem, "R=1000190");
+		//receiveGPSimage(modem, gpsRequestCode+"Τ=225758403761Τ=Τ=Τ=225753403764");
+
+		//These 3 lines of code test the functionality of the parseGPSpacket() function. It works fine.
+		// int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
+		// for(int i=0; i<9; i++){
+		// 	System.out.println(String.valueOf(result[i]) + '\t');
+		// }
+
+		//Implement ARQ mechanism.
 		//arqMechanism(modem, 10000);
 
 		//Close modem
