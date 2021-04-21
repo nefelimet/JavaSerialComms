@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E5878";
-	public static String imageRequestCode = "M8580";
-	public static String imageRequestCodeError = "G1036";
-	public static String gpsRequestCode = "P9111";
-	public static String ackCode = "Q7373";
-	public static String nackCode = "R4822";
+	public static String echoRequestCode =  "E0344";
+	public static String imageRequestCode = "M1305";
+	public static String imageRequestCodeError = "G5273";
+	public static String gpsRequestCode = "P7783";
+	public static String ackCode = "Q2584";
+	public static String nackCode = "R7462";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -102,12 +102,11 @@ public class userApp {
 		}
 	}
 
-	//Appends a string to a file. Appends in next row.
+	//Appends a string to a file.
 	public void appendToFile(String fileName, String toWrite){
 		try{
 			FileWriter myWriter = new FileWriter(fileName, true);
 			myWriter.append(toWrite);
-			myWriter.append("\n");
 			myWriter.flush();
 			myWriter.close();
 		} catch(IOException e){
@@ -124,6 +123,7 @@ public class userApp {
 		writeToFile("echopackets.txt", "Echo packets received: \n\n");
 		createFile("echopackets.csv");
 		appendToFile("echopackets.csv", "Response time (ms)");
+		appendToFile("echopackets.csv", "\n");
 
 		for(int i=0; i<packetsNum; i++){
 			time1 = System.currentTimeMillis();
@@ -131,6 +131,7 @@ public class userApp {
 			timePassed = System.currentTimeMillis() - time1;
 			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
 			appendToFile("echopackets.csv", String.valueOf(timePassed));
+			appendToFile("echopackets.csv", "/n");
 		}
 	}
 
@@ -350,33 +351,55 @@ public class userApp {
 
 	//Implements an ARQ mechanism, for duration milliseconds (taken as an argument).
 	public void arqMechanism(Modem modem, long duration){
-		int ackNum = 1;
-		int nackNum = 0;
 		createFile("arqpackets.txt");
 		writeToFile("arqpackets.txt", "ARQ packets received: \n\n");
+		createFile("ARQrepetitions.csv");
+		appendToFile("ARQrepetitions.csv", "Repetitions");
+		appendToFile("ARQrepetitions.csv", ", ");
+		appendToFile("ARQrepetitions.csv", "Number of times");
+		appendToFile("ARQrepetitions.csv", "\n");
+
+		int ackNum = 1;
+		int nackNum = 0;
+		String nextCode;
 		long startTime = System.currentTimeMillis();
 		//Send an ACK to begin.
 		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", false);
 		long timePassed = System.currentTimeMillis() - startTime;
 		writeToFile("arqpackets.txt", rxmessage+"\n");
-		String nextCode = ackCode;
+
+		int repetitions = 0;
+		//repTimes[0] stores how many times we had to repeat 0 times and so on.
+		int repTimes[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 		//Keep sending and receiving as long as time passed < duration.
 		do{
 			if(fcs(rxmessage) == xorResult(rxmessage)){
 				nextCode = ackCode;
 				ackNum++;
+				repTimes[repetitions] += 1;
+				repetitions = 0;
 			}
 			else{
 				nextCode = nackCode;
 				nackNum++;
+				repetitions++;
 			}
 			rxmessage = sendAndListen(modem, nextCode, "PSTOP", false);
 			timePassed = System.currentTimeMillis() - startTime;
-			writeToFile("arqpackets.txt", rxmessage+"\n");
+			writeToFile("arqpackets.txt", rxmessage+"  "+nextCode+"\n");
 		}while(timePassed <= duration);
+
+		//Write the results neatly in a txt file for checking purposes.
 		writeToFile("arqpackets.txt", "Number of ACK packets: "+ackNum+"\n");
 		writeToFile("arqpackets.txt", "Number of NACK packets: "+nackNum+"\n");
+		for(int i=0; i<10; i++){
+			writeToFile("arqpackets.txt", String.valueOf(i)+" repetitions: "+String.valueOf(repTimes[i])+"\n");
+			appendToFile("ARQrepetitions.csv", String.valueOf(i));
+			appendToFile("ARQrepetitions.csv", ", ");
+			appendToFile("ARQrepetitions.csv", String.valueOf(repTimes[i]));
+			appendToFile("ARQrepetitions.csv", "\n");
+		}
 	}
 
 	public void demo() {
@@ -389,9 +412,9 @@ public class userApp {
 		//Send a test message and listen for answer.
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
 
-		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
-		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
-		makeEchoPacketsList(modem, 650);
+		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet. Write times to echopackets.csv file.
+		//To run for at least 4 minutes, the number of packets must be 600-650 when we want to make the G1 graph (for speed=1000bps).
+		//makeEchoPacketsList(modem, 650);
 
 		//Receive an image with no error and one with error.
 		//receiveImage(modem, imageRequestCode);
@@ -407,7 +430,7 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		// arqMechanism(modem, 6000);
+		arqMechanism(modem, 6000);
 
 		//Close modem
 		modem.close();
