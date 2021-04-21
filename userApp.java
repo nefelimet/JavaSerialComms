@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E4919";
-	public static String imageRequestCode = "M1374";
-	public static String imageRequestCodeError = "G6105";
-	public static String gpsRequestCode = "P1227";
-	public static String ackCode = "Q0951";
-	public static String nackCode = "R4063";
+	public static String echoRequestCode =  "E5878";
+	public static String imageRequestCode = "M8580";
+	public static String imageRequestCodeError = "G1036";
+	public static String gpsRequestCode = "P9111";
+	public static String ackCode = "Q7373";
+	public static String nackCode = "R4822";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -102,17 +102,35 @@ public class userApp {
 		}
 	}
 
+	//Appends a string to a file. Appends in next row.
+	public void appendToFile(String fileName, String toWrite){
+		try{
+			FileWriter myWriter = new FileWriter(fileName, true);
+			myWriter.append(toWrite);
+			myWriter.append("\n");
+			myWriter.flush();
+			myWriter.close();
+		} catch(IOException e){
+			System.out.println("An error occured.");
+			e.printStackTrace();
+		}
+	}
+
 	//Receives a lot of echo packets and calculates each packet's response time in ms. Writes the results in a txt file.
 	public void makeEchoPacketsList(Modem modem, int packetsNum){
 		long time1;
 		long timePassed;
 		createFile("echopackets.txt");
 		writeToFile("echopackets.txt", "Echo packets received: \n\n");
+		createFile("echopackets.csv");
+		appendToFile("echopackets.csv", "Response time (ms)");
+
 		for(int i=0; i<packetsNum; i++){
 			time1 = System.currentTimeMillis();
 			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);	//Echo packets don't have an \r character after PSTOP for some reason.
 			timePassed = System.currentTimeMillis() - time1;
 			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
+			appendToFile("echopackets.csv", String.valueOf(timePassed));
 		}
 	}
 
@@ -363,7 +381,7 @@ public class userApp {
 
 	public void demo() {
 		//Initialize modem.
-		Modem modem = initModem(80000, 2000);																				//For text, speed=1000. For images, speed=80000.
+		Modem modem = initModem(8000, 2000);																				//For text, speed=1000. For images, speed=80000.
 
 		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
@@ -373,7 +391,7 @@ public class userApp {
 
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet.
 		//The number of packets changes to 600-650 when we want to make the G1 graph. For now we keep it to a low number for simplicity.
-		//makeEchoPacketsList(modem, 2);
+		makeEchoPacketsList(modem, 650);
 
 		//Receive an image with no error and one with error.
 		//receiveImage(modem, imageRequestCode);
@@ -389,7 +407,7 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		arqMechanism(modem, 10000);
+		// arqMechanism(modem, 6000);
 
 		//Close modem
 		modem.close();
