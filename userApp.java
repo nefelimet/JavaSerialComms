@@ -131,7 +131,7 @@ public class userApp {
 			timePassed = System.currentTimeMillis() - time1;
 			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
 			appendToFile("echopackets.csv", String.valueOf(timePassed));
-			appendToFile("echopackets.csv", "/n");
+			appendToFile("echopackets.csv", "\n");
 		}
 	}
 
@@ -393,7 +393,7 @@ public class userApp {
 		//Write the results neatly in a txt file for checking purposes.
 		writeToFile("arqpackets.txt", "Number of ACK packets: "+ackNum+"\n");
 		writeToFile("arqpackets.txt", "Number of NACK packets: "+nackNum+"\n");
-		for(int i=0; i<10; i++){
+		for(int i=0; i<11; i++){
 			writeToFile("arqpackets.txt", String.valueOf(i)+" repetitions: "+String.valueOf(repTimes[i])+"\n");
 			appendToFile("ARQrepetitions.csv", String.valueOf(i));
 			appendToFile("ARQrepetitions.csv", ", ");
@@ -430,7 +430,7 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		arqMechanism(modem, 6000);
+		//arqMechanism(modem, 6000);
 
 		//Close modem
 		modem.close();
