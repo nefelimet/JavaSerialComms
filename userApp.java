@@ -353,19 +353,27 @@ public class userApp {
 	public void arqMechanism(Modem modem, long duration){
 		createFile("arqpackets.txt");
 		writeToFile("arqpackets.txt", "ARQ packets received: \n\n");
+
 		createFile("ARQrepetitions.csv");
 		appendToFile("ARQrepetitions.csv", "Repetitions");
 		appendToFile("ARQrepetitions.csv", ", ");
 		appendToFile("ARQrepetitions.csv", "Number of times");
 		appendToFile("ARQrepetitions.csv", "\n");
 
+		createFile("ARQresponseTimes.csv");
+		appendToFile("ARQresponseTimes.csv", "Response times (ACK)");
+		appendToFile("ARQresponseTimes.csv", "\n");
+
 		int ackNum = 1;
 		int nackNum = 0;
 		String nextCode;
 		long startTime = System.currentTimeMillis();
+		long responseTime;
 		//Send an ACK to begin.
 		String rxmessage = sendAndListen(modem, ackCode, "PSTOP", false);
 		long timePassed = System.currentTimeMillis() - startTime;
+		responseTime = System.currentTimeMillis() - startTime;
+		long lastTimeACK = startTime;
 		writeToFile("arqpackets.txt", rxmessage+"\n");
 
 		int repetitions = 0;
@@ -379,6 +387,10 @@ public class userApp {
 				ackNum++;
 				repTimes[repetitions] += 1;
 				repetitions = 0;
+				responseTime = System.currentTimeMillis() - lastTimeACK;
+				lastTimeACK = System.currentTimeMillis();
+				appendToFile("ARQresponseTimes.csv", String.valueOf(responseTime));
+				appendToFile("ARQresponseTimes.csv", "\n");
 			}
 			else{
 				nextCode = nackCode;
@@ -430,7 +442,7 @@ public class userApp {
 		// receiveGPSimage(modem, gpsRequestCode+rCode);
 
 		//ARQ mechanism.
-		//arqMechanism(modem, 6000);
+		//arqMechanism(modem, 10000);
 
 		//Close modem
 		modem.close();
