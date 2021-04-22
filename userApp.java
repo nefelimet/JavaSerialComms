@@ -150,87 +150,15 @@ public class userApp {
 			jpegFileName = "imageNoError.jpeg";
 			txtFileName = "imageNoError.txt";
 		}
-		if(requestCode==imageRequestCodeError){
+		else if(requestCode==imageRequestCodeError){
 			jpegFileName = "imageWithError.jpeg";
 			txtFileName = "imageWithError.txt";
 		}
-
-		String txmessageToSend = requestCode + "\r";
-		modem.write(txmessageToSend.getBytes());
-		System.out.println("Sent request for image.");
-		String toPrint = "Sent " + requestCode + " request code.";
-		System.out.println(toPrint);
-
-		for(;;){
-			try{
-				k = modem.read();
-				if (k==-1){
-					System.out.println("Connection closed.");
-					break;
-				}
-				intList.add(k);
-				byteList.add((byte)k);
-				if(lastValue==255 && k==217){foundEndDelimiter=true;}
-				if(foundEndDelimiter){
-					System.out.println("End of listen message.");
-					break;
-				}
-				else{
-					lastValue = k;
-				}
-			} catch(Exception x){
-				break;
-			}
+		else{
+			jpegFileName = "gpsImage.jpeg";
+			txtFileName = "gpsImage.txt";
 		}
 
-		//Now intList stores the image in an ArrayList<Integer> form. We will now write that into a txt file for checking (optional).
-		createFile(txtFileName);
-		writeToFile(txtFileName, "Int array of image:/n/n");
-		for(int i=0; i<intList.size();i++){
-			writeToFile(txtFileName, intList.get(i)+"/r/n");
-		}
-
-		//We will write the int array into a jpeg file using FileOutputStream.
-
-		//Create the jpeg file.
-		try {
-			File imgFile = new File(jpegFileName);
-		  if (imgFile.createNewFile()) {
-		  	System.out.println("File created: " + imgFile.getName());
-		  } else {
-		    System.out.println("File already exists.");
-		  }
-		} catch (IOException e) {
-		  System.out.println("An error occurred.");
-		  e.printStackTrace();
-		}
-
-		//Convert byteList to byteArr
-		byte byteArr[] = new byte[byteList.size()];
-		for(int i=0; i<byteList.size();i++){
-			byteArr[i] = byteList.get(i);
-		}
-
-		//Use FileOutputStream to copy byteArr into jpeg file.
-		try{
-			FileOutputStream fos = new FileOutputStream(jpegFileName);
-			fos.write(byteArr);
-			fos.close();
-		} catch(Exception e){
-			System.out.println(e);
-		}
-	}
-
-	//Receives an image with a GPS trace (or more), according to the gpsRequestCode we pass. Stores it into a jpeg file as well as a txt file.
-	public void receiveGPSimage(Modem modem, String requestCode){
-		ArrayList<Integer> intList = new ArrayList<Integer>();
-		ArrayList<Byte> byteList = new ArrayList<Byte>();
-		int k;
-		boolean foundEndDelimiter = false;
-		int lastValue = 0;
-
-		String jpegFileName = "gpsImage.jpeg";
-		String txtFileName = "gpsImage.txt";
 		String txmessageToSend = requestCode + "\r";
 		modem.write(txmessageToSend.getBytes());
 		System.out.println("Sent request for image.");
@@ -424,6 +352,25 @@ public class userApp {
 		return "T="+t2+t1;
 	}
 
+	//Creates a GPS image with traces we get.
+	public void createGPSimage(Modem modem, String rCode){
+		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
+		ArrayList<String> strArray = getGPSlines(rxmessage);
+
+		String gpsPacket1 = strArray.get(2);
+		String gpsPacket2 = strArray.get(23);
+		String gpsPacket3 = strArray.get(45);
+		String gpsPacket4 = strArray.get(58);
+		String gpsPacket5 = strArray.get(89);
+
+		String tCode1 = createTcode(gpsPacket1);
+		String tCode2 = createTcode(gpsPacket2);
+		String tCode3 = createTcode(gpsPacket3);
+		String tCode4 = createTcode(gpsPacket4);
+		String tCode5 = createTcode(gpsPacket5);
+		receiveImage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4+tCode5);
+	}
+
 	//Takes arqPacket string as argument and finds its FCS by parsing the string.
 	public int fcs(String arqPacket){
 		String fcsString = "";
@@ -563,22 +510,8 @@ public class userApp {
 
 		//-------------------------question (iii)-------------------------
 		//Receive GPS track packets and create image out of them.
-		String rCode = "R=1000190";
-		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
-		ArrayList<String> strArray = getGPSlines(rxmessage);
-
-		String gpsPacket1 = strArray.get(2);
-		String gpsPacket2 = strArray.get(23);
-		String gpsPacket3 = strArray.get(45);
-		String gpsPacket4 = strArray.get(58);
-		String gpsPacket5 = strArray.get(89);
-
-		String tCode1 = createTcode(gpsPacket1);
-		String tCode2 = createTcode(gpsPacket2);
-		String tCode3 = createTcode(gpsPacket3);
-		String tCode4 = createTcode(gpsPacket4);
-		String tCode5 = createTcode(gpsPacket5);
-		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4+tCode5);
+		//String rCode = "R=1000190";
+		//createGPSimage(modem, rCode);
 
 		//-------------------------question (iv)-------------------------
 		//Implement ARQ mechanism.
