@@ -407,6 +407,18 @@ public class userApp {
 		return result;
 	}
 
+	//Creates a T=... code out of a gpsPacket string.
+	public String createTcode(String gpsPacket){
+		int[] intArr = parseGPSpacket(gpsPacket);
+		String t1 = String.valueOf(intArr[3]);
+		t1 += String.valueOf(Math.round(0.006*intArr[4]));
+
+		String t2 = String.valueOf(intArr[5]);
+		t2 += String.valueOf(Math.round(0.006*intArr[6]));
+
+		return "T="+t2+t1;
+	}
+
 	//Takes arqPacket string as argument and finds its FCS by parsing the string.
 	public int fcs(String arqPacket){
 		String fcsString = "";
@@ -543,21 +555,22 @@ public class userApp {
 		//receiveImage(modem, imageRequestCodeError);
 
 		//Receive GPS track packets.
-		String tCode1 = "T=225735403737";
-		String tCode2 = "T=225734403736";
-		String tCode3 = "T=225732403738";
-		String tCode4 = "T=225731403738";
 
-		String rCode = "R=1000120";
+		//String rCode = "R=1000120";
+		//receiveGPStraces(modem, rCode);
 
-		//receiveGPStraces(modem, "R=1000190");
-		//receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
+		String tCode1 = createTcode("$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n");
+		String tCode2 = createTcode("$GPGGA,103546.000,4037.6150,N,02257.5828,E,1,07,1.3,40.9,M,36.1,M,,0000*62\n");
+		String tCode3 = createTcode("$GPGGA,103620.000,4037.6477,N,02257.5428,E,1,09,1.1,41.0,M,36.1,M,,0000*69\n");
+		String tCode4 = createTcode("$GPGGA,103644.000,4037.6482,N,02257.5316,E,1,09,1.1,42.4,M,36.1,M,,0000*6C\n");
+		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
 
-		//These 3 lines of code test the functionality of the parseGPSpacket() function. It works fine.
-		int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
-		for(int i=0; i<7; i++){
-			System.out.println(String.valueOf(result[i]) + '\t');
-		}
+		//These 3 lines of code test the functionality of the parseGPSpacket() and createTcode() functions. They work fine.
+		// int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
+		// for(int i=0; i<7; i++){
+		// 	System.out.println(String.valueOf(result[i]) + '\t');
+		// }
+		//System.out.println(createTcode("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n"));
 
 		//These lines test the functionality of getGPSlines() function.
 		//String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
