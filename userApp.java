@@ -137,7 +137,7 @@ public class userApp {
 
 	//Receives an image and stores it into a jpeg file. Also stores its info in a txt file for checking purposes.
 	public void receiveImage(Modem modem, String requestCode){
-		//We take the requestCode as an argument because it could either be an error free imageRequestCode or an imageRequestCodeError one.
+		//We take the requestCode as an argument.
 		ArrayList<Integer> intList = new ArrayList<Integer>();
 		ArrayList<Byte> byteList = new ArrayList<Byte>();
 		int k;
@@ -359,6 +359,9 @@ public class userApp {
 				numOfCommasFound++;
 			}
 			i++;
+			if(i>=gpsPacket.length()){
+				break;
+			}
 			c = gpsPacket.charAt(i);
 		}
 
@@ -561,7 +564,6 @@ public class userApp {
 		//-------------------------question (iii)-------------------------
 		//Receive GPS track packets and create image out of them.
 		String rCode = "R=1000190";
-		//receiveGPStraces(modem, rCode);
 		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
 		ArrayList<String> strArray = getGPSlines(rxmessage);
 
