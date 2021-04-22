@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E9818";
-	public static String imageRequestCode = "M8333";
-	public static String imageRequestCodeError = "G8155";
-	public static String gpsRequestCode = "P8190";
-	public static String ackCode = "Q6105";
-	public static String nackCode = "R3205";
+	public static String echoRequestCode =  "E4642";
+	public static String imageRequestCode = "M4172";
+	public static String imageRequestCodeError = "G4698";
+	public static String gpsRequestCode = "P2467";
+	public static String ackCode = "Q9289";
+	public static String nackCode = "R0217";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -305,28 +305,30 @@ public class userApp {
 		writeToFile("gpstraces.txt", rxmessage);
 	}
 
-	//
-	// public ArrayList<String> getGPSlines(String rxmessage){
-	// 	ArrayList<String> result = new ArrayList<String>();
-	// 	String temp = "";
-	// 	char c = ' ';
-	// 	int i = 0;
-	// 	while(temp != "STOP ITHAKI GPS TRACKING"){
-	// 		c = rxmessage.charAt(i);
-	// 		while(c != '\n'){
-	// 			temp += c;
-	// 			i++;
-	// 			c = rxmessage.charAt(i);
-	// 		}
-	// 		if(c == '\n'){
-	// 			result.add(temp);
-	// 			System.out.println(temp);
-	// 			temp = "";
-	// 		}
-	// 		i++;
-	// 	}
-	// 	return result;
-	// }
+	//Gets a string containing all the GPS packets (lines) and breaks it up into each separate packet.
+	public ArrayList<String> getGPSlines(String rxmessage){
+		ArrayList<String> result = new ArrayList<String>();
+		String temp = "";
+		char c = ' ';
+		int i = 0;
+		while(temp != "STOP ITHAKI GPS TRACKING"){
+			c = rxmessage.charAt(i);
+			while(c != '\n'){
+				temp += c;
+				i++;
+				c = rxmessage.charAt(i);
+			}
+			if(c == '\n'){
+				result.add(temp);
+				temp = "";
+				i++;
+			}
+			if(i>=rxmessage.length()){
+				break;
+			}
+		}
+		return result;
+	}
 
 	//Parses GPS packet (single line). Produces an int array containing time, latitude and longitude.
 	public int[] parseGPSpacket(String gpsPacket){
@@ -546,25 +548,41 @@ public class userApp {
 		//Send a test message and listen for answer.
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
 
+		//-------------------------question (i)-------------------------
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet. Write times to echopackets.csv file.
 		//To run for at least 4 minutes, the number of packets must be 600-650 when we want to make the G1 graph (for speed=1000bps).
 		//makeEchoPacketsList(modem, 900);
 
+		//-------------------------question (ii)-------------------------
 		//Receive an image with no error and one with error.
 		//receiveImage(modem, imageRequestCode);
 		//receiveImage(modem, imageRequestCodeError);
 
-		//Receive GPS track packets.
-
-		//String rCode = "R=1000120";
+		//-------------------------question (iii)-------------------------
+		//Receive GPS track packets and create image out of them.
+		String rCode = "R=1000190";
 		//receiveGPStraces(modem, rCode);
+		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
+		ArrayList<String> strArray = getGPSlines(rxmessage);
 
-		String tCode1 = createTcode("$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n");
-		String tCode2 = createTcode("$GPGGA,103546.000,4037.6150,N,02257.5828,E,1,07,1.3,40.9,M,36.1,M,,0000*62\n");
-		String tCode3 = createTcode("$GPGGA,103620.000,4037.6477,N,02257.5428,E,1,09,1.1,41.0,M,36.1,M,,0000*69\n");
-		String tCode4 = createTcode("$GPGGA,103644.000,4037.6482,N,02257.5316,E,1,09,1.1,42.4,M,36.1,M,,0000*6C\n");
-		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
+		String gpsPacket1 = strArray.get(2);
+		String gpsPacket2 = strArray.get(23);
+		String gpsPacket3 = strArray.get(45);
+		String gpsPacket4 = strArray.get(58);
+		String gpsPacket5 = strArray.get(89);
 
+		String tCode1 = createTcode(gpsPacket1);
+		String tCode2 = createTcode(gpsPacket2);
+		String tCode3 = createTcode(gpsPacket3);
+		String tCode4 = createTcode(gpsPacket4);
+		String tCode5 = createTcode(gpsPacket5);
+		receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4+tCode5);
+
+		//-------------------------question (iv)-------------------------
+		//Implement ARQ mechanism.
+		//arqMechanism(modem, 250000);
+
+		////-------------------------Some tests-------------------------
 		//These 3 lines of code test the functionality of the parseGPSpacket() and createTcode() functions. They work fine.
 		// int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
 		// for(int i=0; i<7; i++){
@@ -573,12 +591,9 @@ public class userApp {
 		//System.out.println(createTcode("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n"));
 
 		//These lines test the functionality of getGPSlines() function.
-		//String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
-		//ArrayList<String> result = getGPSlines("START ITHAKI GPS TRACKING\r\n$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n$GPGGA,103517.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*4B\n$GPGGA,103518.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*44\nSTOP ITHAKI GPS TRACKING\r\n");
-		//System.out.println(result.get(1));
-
-		//Implement ARQ mechanism.
-		//arqMechanism(modem, 250000);
+		// String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
+		// ArrayList<String> result = getGPSlines("START ITHAKI GPS TRACKING\r\n$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n$GPGGA,103517.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*4B\n$GPGGA,103518.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*44\nSTOP ITHAKI GPS TRACKING\r\n");
+		// System.out.println(result.get(1));
 
 		//Close modem
 		modem.close();
