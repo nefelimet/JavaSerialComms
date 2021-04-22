@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E2328";
-	public static String imageRequestCode = "M6897";
-	public static String imageRequestCodeError = "G6680";
-	public static String gpsRequestCode = "P1286";
-	public static String ackCode = "Q0373";
-	public static String nackCode = "R3371";
+	public static String echoRequestCode =  "E9818";
+	public static String imageRequestCode = "M8333";
+	public static String imageRequestCodeError = "G8155";
+	public static String gpsRequestCode = "P8190";
+	public static String ackCode = "Q6105";
+	public static String nackCode = "R3205";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -305,10 +305,33 @@ public class userApp {
 		writeToFile("gpstraces.txt", rxmessage);
 	}
 
+	//
+	// public ArrayList<String> getGPSlines(String rxmessage){
+	// 	ArrayList<String> result = new ArrayList<String>();
+	// 	String temp = "";
+	// 	char c = ' ';
+	// 	int i = 0;
+	// 	while(temp != "STOP ITHAKI GPS TRACKING"){
+	// 		c = rxmessage.charAt(i);
+	// 		while(c != '\n'){
+	// 			temp += c;
+	// 			i++;
+	// 			c = rxmessage.charAt(i);
+	// 		}
+	// 		if(c == '\n'){
+	// 			result.add(temp);
+	// 			System.out.println(temp);
+	// 			temp = "";
+	// 		}
+	// 		i++;
+	// 	}
+	// 	return result;
+	// }
+
 	//Parses GPS packet (single line). Produces an int array containing time, latitude and longitude.
 	public int[] parseGPSpacket(String gpsPacket){
 		String strResult = "";
-		int result[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+		int result[] = {0, 0, 0, 0, 0, 0, 0};
 		int index1 = 0;
 		int index2 = 0;
 		int index3 = 0;
@@ -337,30 +360,50 @@ public class userApp {
 			c = gpsPacket.charAt(i);
 		}
 
-		//This is done very mpakalika
-		for(int j=0; j<6; j++){
-			if(gpsPacket.charAt(index1+j) != '.'){
-				strResult += gpsPacket.charAt(index1+j);
-			}
-		}
-		for(int j=0; j<7; j++){
-			if(gpsPacket.charAt(index2+j) != '.'){
-				strResult += gpsPacket.charAt(index2+j);
-			}
-		}
-		for(int j=0; j<7; j++){
-			if(gpsPacket.charAt(index3+j) != '.'){
-				strResult += gpsPacket.charAt(index3+j);
-			}
-		}
-		System.out.println(strResult);
-		String nextTwo = "";
-		for(int j=0;j<18;j+=2){
-			nextTwo += strResult.charAt(j);
-			nextTwo += strResult.charAt(j+1);
-			result[j/2]=Integer.valueOf(nextTwo);
-			nextTwo = "";
-		}
+		//This is done in the most mpakalikos way possible. Possibly the ugliest code I've ever written.
+		String temp ="";
+		temp += gpsPacket.charAt(index1);
+		temp += gpsPacket.charAt(index1+1);
+		result[0] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index1+2);
+		temp += gpsPacket.charAt(index1+3);
+		result[1] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index1+4);
+		temp += gpsPacket.charAt(index1+5);
+		result[2] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index2);
+		temp += gpsPacket.charAt(index2+1);
+		temp += gpsPacket.charAt(index2+2);
+		temp += gpsPacket.charAt(index2+3);
+		result[3] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index2+5);
+		temp += gpsPacket.charAt(index2+6);
+		temp += gpsPacket.charAt(index2+7);
+		temp += gpsPacket.charAt(index2+8);
+		result[4] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index3);
+		temp += gpsPacket.charAt(index3+1);
+		temp += gpsPacket.charAt(index3+2);
+		temp += gpsPacket.charAt(index3+3);
+		result[5] = Integer.valueOf(temp);
+
+		temp ="";
+		temp += gpsPacket.charAt(index3+5);
+		temp += gpsPacket.charAt(index3+6);
+		temp += gpsPacket.charAt(index3+7);
+		temp += gpsPacket.charAt(index3+8);
+		result[6] = Integer.valueOf(temp);
+
 		return result;
 	}
 
@@ -483,7 +526,7 @@ public class userApp {
 
 	public void demo() {
 		//Initialize modem.
-		Modem modem = initModem(10000, 2000);																				//For text, speed=1000. For images, speed=80000.
+		Modem modem = initModem(80000, 2000);																				//For text, speed=8000. For images, speed=80000.
 
 		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
@@ -493,28 +536,36 @@ public class userApp {
 
 		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet. Write times to echopackets.csv file.
 		//To run for at least 4 minutes, the number of packets must be 600-650 when we want to make the G1 graph (for speed=1000bps).
-		//makeEchoPacketsList(modem, 650);
+		//makeEchoPacketsList(modem, 900);
 
 		//Receive an image with no error and one with error.
 		//receiveImage(modem, imageRequestCode);
 		//receiveImage(modem, imageRequestCodeError);
 
 		//Receive GPS track packets.
-		String tCode1 = "T=225758403761";
-		String tCode2 = "T=225753403764";
-		String mariosString = "T=225731403739T=225728403741T=225727403743T=225728403744T=225731403746";
+		String tCode1 = "T=225735403737";
+		String tCode2 = "T=225734403736";
+		String tCode3 = "T=225732403738";
+		String tCode4 = "T=225731403738";
+
+		String rCode = "R=1000120";
 
 		//receiveGPStraces(modem, "R=1000190");
-		//receiveGPSimage(modem, gpsRequestCode+"Τ=225758403761Τ=Τ=Τ=225753403764");
+		//receiveGPSimage(modem, gpsRequestCode+tCode1+tCode2+tCode3+tCode4);
 
 		//These 3 lines of code test the functionality of the parseGPSpacket() function. It works fine.
-		// int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
-		// for(int i=0; i<9; i++){
-		// 	System.out.println(String.valueOf(result[i]) + '\t');
-		// }
+		int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
+		for(int i=0; i<7; i++){
+			System.out.println(String.valueOf(result[i]) + '\t');
+		}
+
+		//These lines test the functionality of getGPSlines() function.
+		//String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
+		//ArrayList<String> result = getGPSlines("START ITHAKI GPS TRACKING\r\n$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n$GPGGA,103517.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*4B\n$GPGGA,103518.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*44\nSTOP ITHAKI GPS TRACKING\r\n");
+		//System.out.println(result.get(1));
 
 		//Implement ARQ mechanism.
-		//arqMechanism(modem, 10000);
+		//arqMechanism(modem, 250000);
 
 		//Close modem
 		modem.close();
