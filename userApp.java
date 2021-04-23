@@ -8,12 +8,12 @@ import java.util.ArrayList; 																										//Library for ArrayLists
 public class userApp {
 
 	//Request codes that change in each 2-hour session
-	public static String echoRequestCode =  "E4642";
-	public static String imageRequestCode = "M4172";
-	public static String imageRequestCodeError = "G4698";
-	public static String gpsRequestCode = "P2467";
-	public static String ackCode = "Q9289";
-	public static String nackCode = "R0217";
+	public static String echoRequestCode =  "E4246";
+	public static String imageRequestCode = "M7435";
+	public static String imageRequestCodeError = "G8606";
+	public static String gpsRequestCode = "P2698";
+	public static String ackCode = "Q7959";
+	public static String nackCode = "R4816";
 
 	public static void main(String[] param) {
 		(new userApp()).demo();
@@ -38,7 +38,8 @@ public class userApp {
 		//Endless loop for listening for message
 		for (;;) {
 			try {
-				k=modem.read();																													//Read a byte from the modem
+				//Read a byte from the modem
+				k=modem.read();
 				if (k==-1){
 					System.out.println("Connection closed.");
 					break;
@@ -48,7 +49,7 @@ public class userApp {
 				rxmessage = rxmessage + (char)k;
 				//System.out.println(rxmessage);
 				//Break endless loop by catching break sequence.
-				if (rxmessage.indexOf(delimiter)>-1){																		//If the break sequence is found break
+				if (rxmessage.indexOf(delimiter)>-1){
 					if(printRx==true){System.out.println(rxmessage);}
 					System.out.println("End of listen message.");
 					break;
@@ -92,10 +93,10 @@ public class userApp {
 	//Writes a string to a file.
 	public void writeToFile(String fileName, String toWrite){
 		try {
-			FileWriter myWriter = new FileWriter(fileName, true);											//The true argument is needed in order to append to the file and not overwrite it.
+			//The true argument is needed in order to append to the file and not overwrite it.
+			FileWriter myWriter = new FileWriter(fileName, true);
 			myWriter.write(toWrite);
 			myWriter.close();
-		//	System.out.println("Successfully wrote to the file.");
 		} catch (IOException e) {
 			System.out.println("An error occurred.");
 			e.printStackTrace();
@@ -115,7 +116,7 @@ public class userApp {
 		}
 	}
 
-	//Receives a lot of echo packets and calculates each packet's response time in ms. Writes the results in a txt file.
+	//Receives a lot of echo packets and calculates each packet's response time in ms. Writes the results in a txt and a csv file.
 	public void makeEchoPacketsList(Modem modem, int packetsNum){
 		long time1;
 		long timePassed;
@@ -127,7 +128,8 @@ public class userApp {
 
 		for(int i=0; i<packetsNum; i++){
 			time1 = System.currentTimeMillis();
-			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);	//Echo packets don't have an \r character after PSTOP for some reason.
+			//Echo packets don't have an \r character after PSTOP for some reason.
+			String rxmessage = sendAndListen(modem, echoRequestCode, "PSTOP", false);
 			timePassed = System.currentTimeMillis() - time1;
 			writeToFile("echopackets.txt", rxmessage+"\t"+timePassed+" ms\r\n");
 			appendToFile("echopackets.csv", String.valueOf(timePassed));
@@ -135,9 +137,9 @@ public class userApp {
 		}
 	}
 
-	//Receives an image and stores it into a jpeg file. Also stores its info in a txt file for checking purposes.
+	//Receives an image and stores it into a jpeg file. Also stores its info in a txt file for checking purposes (commented out).
 	public void receiveImage(Modem modem, String requestCode){
-		//We take the requestCode as an argument.
+		//The byteList is used for writing into jpeg file. The intList is used for writing into txt file (optional).
 		ArrayList<Integer> intList = new ArrayList<Integer>();
 		ArrayList<Byte> byteList = new ArrayList<Byte>();
 		int k;
@@ -197,17 +199,7 @@ public class userApp {
 		//We will write the int array into a jpeg file using FileOutputStream.
 
 		//Create the jpeg file.
-		try {
-			File imgFile = new File(jpegFileName);
-		  if (imgFile.createNewFile()) {
-		  	System.out.println("File created: " + imgFile.getName());
-		  } else {
-		    System.out.println("File already exists.");
-		  }
-		} catch (IOException e) {
-		  System.out.println("An error occurred.");
-		  e.printStackTrace();
-		}
+		createFile(jpegFileName);
 
 		//Convert byteList to byteArr
 		byte byteArr[] = new byte[byteList.size()];
@@ -236,6 +228,7 @@ public class userApp {
 	//Gets a string containing all the GPS packets (lines) and breaks it up into each separate packet.
 	public ArrayList<String> getGPSlines(String rxmessage){
 		ArrayList<String> result = new ArrayList<String>();
+		//temp string will store each packet every time.
 		String temp = "";
 		char c = ' ';
 		int i = 0;
@@ -246,6 +239,7 @@ public class userApp {
 				i++;
 				c = rxmessage.charAt(i);
 			}
+			//When line seperator is found, empty temp in order to store the next packet.
 			if(c == '\n'){
 				result.add(temp);
 				temp = "";
@@ -262,9 +256,11 @@ public class userApp {
 	public int[] parseGPSpacket(String gpsPacket){
 		String strResult = "";
 		int result[] = {0, 0, 0, 0, 0, 0, 0};
+		//index1 is where the time starts, index2 is where the latitude starts, index3 is where longitude starts.
 		int index1 = 0;
 		int index2 = 0;
 		int index3 = 0;
+		//numOfCommas will store the number of commas we've found so far.
 		int numOfCommasFound = 0;
 
 		int i = 0;
@@ -272,14 +268,19 @@ public class userApp {
 		while(c!= '\n'){
 			if(c == ','){
 				switch(numOfCommasFound){
+					//If we haven't found any commas yet, then this comma is the first and denotes the start of the time information.
 					case 0:
 						index1 = i+1;
 						break;
+					//If we've only found one comma, then this comma is the second and denotes the start of the latitude information.
 					case 1:
 						index2 = i+1;
 						break;
+					//If we've found two commas, then this comma is the third but nothing starts here, so we skip it.
 					case 2:
 						break;
+					//If we've found three commas, then this comma is the fourth and denotes the start of the longitude information.
+					//However there's always a 0 in the start, so we skip that too.
 					case 3:
 						index3 = i+2;
 						break;
@@ -293,44 +294,45 @@ public class userApp {
 			c = gpsPacket.charAt(i);
 		}
 
+		//Now that we've found the indexes of the information we need, we fill the result array with that info.
 		//This is done in the most mpakalikos way possible. Possibly the ugliest code I've ever written.
-		String temp ="";
+		String temp = "";
 		temp += gpsPacket.charAt(index1);
 		temp += gpsPacket.charAt(index1+1);
 		result[0] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index1+2);
 		temp += gpsPacket.charAt(index1+3);
 		result[1] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index1+4);
 		temp += gpsPacket.charAt(index1+5);
 		result[2] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index2);
 		temp += gpsPacket.charAt(index2+1);
 		temp += gpsPacket.charAt(index2+2);
 		temp += gpsPacket.charAt(index2+3);
 		result[3] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index2+5);
 		temp += gpsPacket.charAt(index2+6);
 		temp += gpsPacket.charAt(index2+7);
 		temp += gpsPacket.charAt(index2+8);
 		result[4] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index3);
 		temp += gpsPacket.charAt(index3+1);
 		temp += gpsPacket.charAt(index3+2);
 		temp += gpsPacket.charAt(index3+3);
 		result[5] = Integer.valueOf(temp);
 
-		temp ="";
+		temp = "";
 		temp += gpsPacket.charAt(index3+5);
 		temp += gpsPacket.charAt(index3+6);
 		temp += gpsPacket.charAt(index3+7);
@@ -357,15 +359,20 @@ public class userApp {
 		String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
 		ArrayList<String> strArray = getGPSlines(rxmessage);
 
+		//Get the number of packets we want out of R code.
 		String temp = "";
 		temp += rCode.charAt(7);
 		temp += rCode.charAt(8);
 		int numOfPackets = Integer.valueOf(temp);
 
-		if(numOfPackets < 13){																											//This was found in an empirical way.
+		//Ask for at least 13 packets in order to be able to find at least 4 that are at least 4 seconds apart from each other.
+		//This was found empirically.
+		if(numOfPackets < 13){
 			System.out.println("Please request at least 13 GPS packets in order for them to have at least 4 seconds difference.");
 			return;
 		}
+
+		//We pick some of the GPS packets. We try to split the numOfPackets we have in almost equal parts, in order for them to be as much away from each other (in seconds) as possible.
 		ArrayList<String> gpsPackets = new ArrayList<String>();
 		gpsPackets.add(strArray.get(1));																						//First GPS packet is always the first one (stored in line 1, since line 0 has start delimiter).
 		for(int i=1; i<numTraces-1; i++){																						//First packet is already stored, so we begin from 1.
@@ -434,7 +441,8 @@ public class userApp {
 		return p;
 	}
 
-	//Implements an ARQ mechanism, for duration milliseconds (taken as an argument).
+	//Implements an ARQ mechanism, for duration milliseconds (taken as an argument). Calculates the number of ACK and NACK packets we sent, their response times and the times of repetitions.
+	//Stores the results in a txt and a csv file.
 	public void arqMechanism(Modem modem, long duration){
 		createFile("arqpackets.txt");
 		writeToFile("arqpackets.txt", "ARQ packets received: \n\n");
@@ -462,7 +470,7 @@ public class userApp {
 		writeToFile("arqpackets.txt", rxmessage+"\n");
 
 		int repetitions = 0;
-		//repTimes[0] stores how many times we had to repeat 0 times and so on.
+		//repTimes[0] stores how many times we had to repeat 0 times in order to get a correct packet and so on.
 		int repTimes[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 		//Keep sending and receiving as long as time passed < duration.
@@ -501,7 +509,7 @@ public class userApp {
 
 	public void demo() {
 		//Initialize modem.
-		Modem modem = initModem(80000, 2000);																				//For text, speed=8000. For images, speed=80000.
+		Modem modem = initModem(80000, 2000);																				//For text, speed=1000. For images, speed=80000.
 
 		//Listen for welcome message from Ithaki.
 		String welcomeMessage = listen(modem, "\r\n\n\n", true);
@@ -510,36 +518,23 @@ public class userApp {
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
 
 		//-------------------------question (i)-------------------------
-		//Send echoRequestCodes and listen for answers. Write them to echopackets.txt file, along with the response time for each packet. Write times to echopackets.csv file.
-		//To run for at least 4 minutes, the number of packets must be 600-650 when we want to make the G1 graph (for speed=1000bps).
+		//Send echoRequestCodes and listen for answers.
+		//Set speed to 1000 bps. To run for at least 4 minutes, the number of packets must be around 900.
 		//makeEchoPacketsList(modem, 900);
 
 		//-------------------------question (ii)-------------------------
-		//Receive an image with no error and one with error.
+		//Receive an image with no error and one with error. Set speed to 80000.
 		//receiveImage(modem, imageRequestCode);
 		//receiveImage(modem, imageRequestCodeError);
 
 		//-------------------------question (iii)-------------------------
-		//Receive GPS track packets and create image out of them.
-		String rCode = "R=1000190";
-		createGPSimage(modem, rCode, 5);
+		//Receive GPS track packets and create image out of them. Set speed to 80000.
+		//String rCode = "R=1000190";
+		//createGPSimage(modem, rCode, 5);
 
 		//-------------------------question (iv)-------------------------
-		//Implement ARQ mechanism.
+		//Implement ARQ mechanism. Set speed to 1000.
 		//arqMechanism(modem, 250000);
-
-		////-------------------------Some tests-------------------------
-		//These 3 lines of code test the functionality of the parseGPSpacket() and createTcode() functions. They work fine.
-		// int result[] = parseGPSpacket("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n");
-		// for(int i=0; i<7; i++){
-		// 	System.out.println(String.valueOf(result[i]) + '\t');
-		// }
-		//System.out.println(createTcode("$GPGGA,103520.000,4037.6180,N,02257.5874,E,2,06,2.1,39.2,M,36.1,M,2.0,0000*4C\n"));
-
-		//These lines test the functionality of getGPSlines() function.
-		// String rxmessage = sendAndListen(modem, gpsRequestCode+rCode, "STOP ITHAKI GPS TRACKING\r\n", false);
-		// ArrayList<String> result = getGPSlines("START ITHAKI GPS TRACKING\r\n$GPGGA,103516.000,4037.6180,N,02257.5875,E,2,06,2.1,39.0,M,36.1,M,2.0,0000*4A\n$GPGGA,103517.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*4B\n$GPGGA,103518.000,4037.6180,N,02257.5874,E,2,06,2.1,39.1,M,36.1,M,2.0,0000*44\nSTOP ITHAKI GPS TRACKING\r\n");
-		// System.out.println(result.get(1));
 
 		//Close modem
 		modem.close();
