@@ -295,7 +295,7 @@ public class userApp {
 		}
 
 		//Now that we've found the indexes of the information we need, we fill the result array with that info.
-		//This is done in the most mpakalikos way possible. Possibly the ugliest code I've ever written.
+		//This could be done more neatly.
 		String temp = "";
 		temp += gpsPacket.charAt(index1);
 		temp += gpsPacket.charAt(index1+1);
@@ -516,6 +516,8 @@ public class userApp {
 
 		//Send a test message and listen for answer.
 		String testMessage = sendAndListen(modem, "test", "PSTOP\r\n", true);
+		
+		//Comment out the section you want according to each question.
 
 		//-------------------------question (i)-------------------------
 		//Send echoRequestCodes and listen for answers.
